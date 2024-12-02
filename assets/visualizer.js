@@ -18,6 +18,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let waveRange = 5;
     let ringRange = 5;
     let blobRange = 5;
+    let baseRotationSpeed = 0.01;
+    let rotationSpeedBoost = 0;
 
     function resizeCanvas() {
         const dpr = window.devicePixelRatio || 1;
@@ -79,13 +81,13 @@ document.addEventListener('DOMContentLoaded', function() {
         analyser.connect(audioContext.destination);
 
         analyser.fftSize = 2048;
-        bufferLength = analyser.fftSize;
+        bufferLength = analyser.frequencyBinCount;
         dataArray = new Uint8Array(bufferLength);
     }
 
     function draw() {
         requestAnimationFrame(draw);
-        analyser.getByteTimeDomainData(dataArray);
+        analyser.getByteFrequencyData(dataArray);
 
         canvasContext.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -112,7 +114,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Draw rotating squares in the corners
         const squareSize = 50 + averageVolume * squareRange * 0.1;
-        const rotation = averageVolume * sensitivity * 0.01;
+        const lowFrequencyVolume = dataArray.slice(0, 10).reduce((a, b) => a + b, 0) / 10;
+        const rotationSpeed = baseRotationSpeed + (lowFrequencyVolume / 128) * 0.1;
+        rotationSpeedBoost = Math.max(rotationSpeedBoost - 0.01, 0); // Gradually decrease the boost
+        const rotation = (averageVolume * sensitivity * 0.01) + rotationSpeedBoost;
+
         const color = `rgb(${averageVolume}, 0, 0)`;
 
         canvasContext.save();
@@ -144,6 +150,7 @@ document.addEventListener('DOMContentLoaded', function() {
         canvasContext.restore();
 
         // Draw outer ring as waveform visualizer
+        analyser.getByteTimeDomainData(dataArray);
         const ringRadius = 200;
         const centerX = canvas.width / 2;
         const centerY = canvas.height / 2;
@@ -165,7 +172,6 @@ document.addEventListener('DOMContentLoaded', function() {
         canvasContext.stroke();
 
         // Draw inner blob (ferromagnetic fluid effect)
-        const lowFrequencyVolume = dataArray.slice(0, 10).reduce((a, b) => a + b, 0) / 10;
         const blobRadius = 50 + lowFrequencyVolume * blobRange * 0.1;
         const blobColor = `rgb(${255 - lowFrequencyVolume}, ${lowFrequencyVolume}, 0)`;
         canvasContext.fillStyle = blobColor;
@@ -183,6 +189,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         canvasContext.closePath();
         canvasContext.fill();
+
+        // Speed up rotation on kick
+        if (lowFrequencyVolume > 150) {
+            rotationSpeedBoost = 0.2;
+        }
     }
 
     settingsButton.addEventListener('click', () => {
