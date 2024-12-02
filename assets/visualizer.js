@@ -98,8 +98,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         const averageVolume = sum / bufferLength;
 
+        // Calculate low-frequency volume for kicks
+        const lowFrequencyVolume = dataArray.slice(0, 10).reduce((a, b) => a + b, 0) / 10;
+
         // Draw sawtooth waves
-        const sawtoothHeight = averageVolume * waveRange * 0.1;
+        const sawtoothHeight = lowFrequencyVolume * waveRange * 0.1;
         canvasContext.strokeStyle = 'white';
         canvasContext.lineWidth = 2;
         for (let y = 0; y < canvas.height; y += 100) {
@@ -114,7 +117,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Draw rotating squares in the corners
         const squareSize = 50 + averageVolume * squareRange * 0.1;
-        const lowFrequencyVolume = dataArray.slice(0, 10).reduce((a, b) => a + b, 0) / 10;
         const rotationSpeed = baseRotationSpeed + (lowFrequencyVolume / 128) * 0.1;
         rotationSpeedBoost = Math.max(rotationSpeedBoost - 0.01, 0); // Gradually decrease the boost
         const rotation = (averageVolume * sensitivity * 0.01) + rotationSpeedBoost;
