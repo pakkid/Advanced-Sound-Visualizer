@@ -19,9 +19,9 @@ const audioSource = audioContext.createMediaElementSource(audio);
 const analyser = audioContext.createAnalyser();
 audioSource.connect(analyser);
 analyser.connect(audioContext.destination);
-analyser.fftSize = 256;
+analyser.fftSize = 2048;
 
-const bufferLength = analyser.frequencyBinCount;
+const bufferLength = analyser.fftSize;
 const dataArray = new Uint8Array(bufferLength);
 
 let sensitivity = 5;
@@ -32,7 +32,7 @@ let blobRange = 5;
 
 function draw() {
     requestAnimationFrame(draw);
-    analyser.getByteFrequencyData(dataArray);
+    analyser.getByteTimeDomainData(dataArray);
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -94,12 +94,11 @@ function draw() {
     const ringRadius = 200;
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
-    ctx.strokeStyle = 'white';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 4; // Thicker lines
     ctx.beginPath();
     for (let i = 0; i < bufferLength; i++) {
         const angle = (i / bufferLength) * Math.PI * 2;
-        const radius = ringRadius + dataArray[i] * ringRange * 0.1;
+        const radius = ringRadius + (dataArray[i] - 128) * ringRange * 0.1;
         const x = centerX + radius * Math.cos(angle);
         const y = centerY + radius * Math.sin(angle);
         if (i === 0) {
@@ -109,6 +108,7 @@ function draw() {
         }
     }
     ctx.closePath();
+    ctx.strokeStyle = 'white';
     ctx.stroke();
 
     // Draw inner blob
