@@ -4,6 +4,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const settingsButton = document.getElementById('settings-button');
     const settings = document.getElementById('settings');
     const closeSettingsButton = document.getElementById('close-settings');
+    const sensitivitySlider = document.getElementById('sensitivity');
+    const squareRangeSlider = document.getElementById('square-range');
+    const waveRangeSlider = document.getElementById('wave-range');
+    const ringRangeSlider = document.getElementById('ring-range');
+    const blobRangeSlider = document.getElementById('blob-range');
     let audioContext, source, analyser, dataArray, bufferLength, canvasContext, audioBuffer;
     let isPlaying = false;
     let hue = 0;
@@ -84,6 +89,60 @@ document.addEventListener('DOMContentLoaded', function() {
 
         canvasContext.clearRect(0, 0, canvas.width, canvas.height);
 
+        // Calculate average volume
+        let sum = 0;
+        for (let i = 0; i < bufferLength; i++) {
+            sum += dataArray[i];
+        }
+        const averageVolume = sum / bufferLength;
+
+        // Draw sawtooth waves
+        const sawtoothHeight = averageVolume * waveRange * 0.1;
+        canvasContext.strokeStyle = 'white';
+        canvasContext.lineWidth = 2;
+        for (let y = 0; y < canvas.height; y += 100) {
+            canvasContext.beginPath();
+            canvasContext.moveTo(0, y + 50);
+            for (let x = 0; x < canvas.width; x += 50) {
+                canvasContext.lineTo(x + 25, y + 50 - sawtoothHeight);
+                canvasContext.lineTo(x + 50, y + 50);
+            }
+            canvasContext.stroke();
+        }
+
+        // Draw rotating squares in the corners
+        const squareSize = 50 + averageVolume * squareRange * 0.1;
+        const rotation = averageVolume * sensitivity * 0.01;
+        const color = `rgb(${averageVolume}, 0, 0)`;
+
+        canvasContext.save();
+        canvasContext.translate(35, 35);
+        canvasContext.rotate(rotation);
+        canvasContext.fillStyle = color;
+        canvasContext.fillRect(-squareSize / 2, -squareSize / 2, squareSize, squareSize);
+        canvasContext.restore();
+
+        canvasContext.save();
+        canvasContext.translate(canvas.width - 35, 35);
+        canvasContext.rotate(rotation);
+        canvasContext.fillStyle = color;
+        canvasContext.fillRect(-squareSize / 2, -squareSize / 2, squareSize, squareSize);
+        canvasContext.restore();
+
+        canvasContext.save();
+        canvasContext.translate(35, canvas.height - 35);
+        canvasContext.rotate(rotation);
+        canvasContext.fillStyle = color;
+        canvasContext.fillRect(-squareSize / 2, -squareSize / 2, squareSize, squareSize);
+        canvasContext.restore();
+
+        canvasContext.save();
+        canvasContext.translate(canvas.width - 35, canvas.height - 35);
+        canvasContext.rotate(rotation);
+        canvasContext.fillStyle = color;
+        canvasContext.fillRect(-squareSize / 2, -squareSize / 2, squareSize, squareSize);
+        canvasContext.restore();
+
         // Draw outer ring as waveform visualizer
         const ringRadius = 200;
         const centerX = canvas.width / 2;
@@ -105,13 +164,24 @@ document.addEventListener('DOMContentLoaded', function() {
         canvasContext.strokeStyle = 'white';
         canvasContext.stroke();
 
-        // Draw inner blob
+        // Draw inner blob (ferromagnetic fluid effect)
         const lowFrequencyVolume = dataArray.slice(0, 10).reduce((a, b) => a + b, 0) / 10;
         const blobRadius = 50 + lowFrequencyVolume * blobRange * 0.1;
         const blobColor = `rgb(${255 - lowFrequencyVolume}, ${lowFrequencyVolume}, 0)`;
         canvasContext.fillStyle = blobColor;
         canvasContext.beginPath();
-        canvasContext.arc(centerX, centerY, blobRadius, 0, Math.PI * 2);
+        for (let i = 0; i < 360; i += 10) {
+            const angle = i * Math.PI / 180;
+            const radius = blobRadius + Math.sin(angle * 10 + Date.now() / 100) * 10;
+            const x = centerX + radius * Math.cos(angle);
+            const y = centerY + radius * Math.sin(angle);
+            if (i === 0) {
+                canvasContext.moveTo(x, y);
+            } else {
+                canvasContext.lineTo(x, y);
+            }
+        }
+        canvasContext.closePath();
         canvasContext.fill();
     }
 
