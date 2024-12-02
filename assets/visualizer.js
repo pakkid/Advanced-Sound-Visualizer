@@ -43,6 +43,20 @@ function draw() {
     }
     const averageVolume = sum / bufferLength;
 
+    // Draw sawtooth waves
+    const sawtoothHeight = averageVolume * waveRange * 0.1;
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 2;
+    for (let y = 0; y < canvas.height; y += 100) {
+        ctx.beginPath();
+        ctx.moveTo(0, y + 50);
+        for (let x = 0; x < canvas.width; x += 50) {
+            ctx.lineTo(x + 25, y + 50 - sawtoothHeight);
+            ctx.lineTo(x + 50, y + 50);
+        }
+        ctx.stroke();
+    }
+
     // Draw rotating squares in the corners
     const squareSize = 50 + averageVolume * squareRange * 0.1;
     const rotation = averageVolume * sensitivity * 0.01;
@@ -76,30 +90,25 @@ function draw() {
     ctx.fillRect(-squareSize / 2, -squareSize / 2, squareSize, squareSize);
     ctx.restore();
 
-    // Draw sawtooth waves
-    const sawtoothHeight = averageVolume * waveRange * 0.1;
+    // Draw outer ring as waveform visualizer
+    const ringRadius = 200;
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
     ctx.strokeStyle = 'white';
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(0, 50);
-    for (let i = 0; i < canvas.width; i += 50) {
-        ctx.lineTo(i + 25, 50 - sawtoothHeight);
-        ctx.lineTo(i + 50, 50);
+    for (let i = 0; i < bufferLength; i++) {
+        const angle = (i / bufferLength) * Math.PI * 2;
+        const radius = ringRadius + dataArray[i] * ringRange * 0.1;
+        const x = centerX + radius * Math.cos(angle);
+        const y = centerY + radius * Math.sin(angle);
+        if (i === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
     }
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(0, 150);
-    for (let i = 0; i < canvas.width; i += 50) {
-        ctx.lineTo(i + 25, 150 - sawtoothHeight);
-        ctx.lineTo(i + 50, 150);
-    }
-    ctx.stroke();
-
-    // Draw outer ring
-    const ringRadius = 200 + averageVolume * ringRange * 0.1;
-    ctx.strokeStyle = 'white';
-    ctx.beginPath();
-    ctx.arc(canvas.width / 2, canvas.height / 2, ringRadius, 0, Math.PI * 2);
+    ctx.closePath();
     ctx.stroke();
 
     // Draw inner blob
@@ -108,7 +117,7 @@ function draw() {
     const blobColor = `rgb(${255 - lowFrequencyVolume}, ${lowFrequencyVolume}, 0)`;
     ctx.fillStyle = blobColor;
     ctx.beginPath();
-    ctx.arc(canvas.width / 2, canvas.height / 2, blobRadius, 0, Math.PI * 2);
+    ctx.arc(centerX, centerY, blobRadius, 0, Math.PI * 2);
     ctx.fill();
 }
 
